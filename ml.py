@@ -117,8 +117,8 @@ class LinearRegress(LinearModel):
         #T = np.asmatrix(np.array(num2))
         X = csv1
         T = csv2
-        print("X",X)
-        print("T",T)
+        #print("X",X)
+        #print("T",T)
         X = np.asmatrix(X)
         T = np.asmatrix(T)
         X = np.hstack((np.ones((X.shape[0], 1)), X))
@@ -152,7 +152,8 @@ class LinearRegress(LinearModel):
         print("Tshape",T.shape)
         
         loop_through = sc.parallelize([x for x in X])
-        links = loop_through.map(lambda word: self.least_squares(word)).reduceByKey(lambda a,b:a+b)
+        links = loop_through.map(lambda word: self.least_squares(word))#.reduceByKey(lambda a,b:a+b)
+        print(links.collect())
         for link,rank in links.collect():
             print(link,rank)
             xtx = rank
@@ -205,7 +206,7 @@ class LMS(LinearModel):
         
     # batch training by using train_step function
     def train(self, X, T):
-        iterations = 3000
+        iterations = 300
         X = self.add_ones(X)
         self.w = np.zeros((1,X.shape[1]))
         #print("X is ")
@@ -263,3 +264,115 @@ class LMS(LinearModel):
         return hypothesis.T
         pass  ## TODO: replace this with your codes
         
+import numpy as np
+
+def sigmoid_function(x):
+    return 1/(1+np.exp(-x))
+
+def softmax_function(scores):
+    print("scoreshape",scores.shape)
+    exp=np.exp(scores-np.max(scores))
+    if exp.ndim==1:
+        return exp/np.sum(exp,axis=0)
+    else:  
+        return exp/np.array([np.sum(exp,axis=1)]).T 
+
+
+class LogisticRegression(object):
+    def __init__(self, input, label):
+        self.x = input
+        self.y = label
+        self.W = np.zeros((self.x.shape[1], self.y.shape[1]))
+        self.b = np.zeros(self.y.shape[1])
+
+    def least_squares(self,csv):
+        """Parses a urls pair string into urls pair."""
+        #print("CEEYESVEE",csv,csv.shape)
+        #nums = csv.split(",")
+        #num1 = float(nums[0])
+        #num2 = float(nums[1])
+        
+        #X = np.asmatrix(np.array(num1))
+        #T = np.asmatrix(np.array(num2))
+        #X = add_ones(X)
+        T = np.asmatrix(csv)
+        #T = np.hstack((np.ones((T.shape[0], 1)), T))
+        xtx = T.T.dot(T)
+        
+        #arr = ["weights",np.array([1,1*num2,num2*1,num2*num2])]
+        arr = ["weights",xtx]
+
+        return arr
+       
+    def interval_calc(self,csv1,csv2):
+        #nums = csv.split(",")
+        #num1 = float(nums[0])
+        #num2 = float(nums[1])
+
+        #X = np.asmatrix(np.array(num1))
+        #T = np.asmatrix(np.array(num2))
+        X = csv1
+        T = csv2
+        #print("X",X)
+        #print("T",T)
+        X = np.asmatrix(X).T
+        #X = np.hstack((np.ones((X.shape[0], 1)), X))
+        interval = X.T.dot(T)
+        arr = ["weights",interval]
+        #return np.array(arr)
+        return np.squeeze(np.array(arr))
+
+    def train_parallel(self, scon,lr=0.1, L2_reg=0.00):
+        print(self.x.shape)
+        print(self.W.shape)
+        print(self.b.shape)
+        print(self.y.shape)
+        lamb = 0.00000004
+        dot_hypo = np.dot(self.x, self.W) 
+        loop_through = scon.parallelize([ x for x in self.x])
+        links2 = loop_through.map(lambda word: self.interval_calc(word,self.W)).reduceByKey(lambda a,b:np.vstack((a,b)))
+        for link,rank in links2.collect():
+            print(link,rank)
+            interval = rank
+
+        #dot_hypo = np.asmatrix(interval)
+        dot_hypo = np.array(interval)
+        print(dot_hypo)
+        print("dothyposhape",dot_hypo.shape)
+        print(type(dot_hypo))
+        print(type(dot_hypo[0]))
+        print(self.b.shape)
+        
+        
+        p_y_given_x = softmax_function(dot_hypo + self.b)
+        d_y = self.y - p_y_given_x
+        self.W += lr * np.dot(self.x.T, d_y) - lamb * L2_reg * self.W
+        self.b += lr * np.mean(d_y, axis=0)
+   
+    def train(self, lr=0.1, L2_reg=0.00):
+        print(self.x.shape)
+        print(self.W.shape)
+        print(self.b.shape)
+        print(self.y.shape)
+        lamb = 0.0000000004
+ 
+        dot_hypo = np.dot(self.x, self.W) 
+        print("dothyposhape",dot_hypo.shape)
+        print(dot_hypo)
+        print(type(dot_hypo))
+        print(type(dot_hypo[0]))
+        print(self.b.shape)
+        p_y_given_x = softmax_function(dot_hypo+ self.b)
+        d_y = self.y - p_y_given_x
+        self.W += lr * np.dot(self.x.T, d_y) - lr* L2_reg * self.W
+        self.b += lr * np.mean(d_y, axis=0)
+
+    def negative_log_likelihood(self):
+        sigmoid_activation = softmax_function(np.dot(self.x, self.W) + self.b)
+        cross_entropy = - np.mean(np.sum(self.y * np.log(sigmoid_activation) + (1 - self.y) * np.log(1 - sigmoid_activation),axis=1))
+
+        return cross_entropy
+
+
+    def predict(self, x):
+        return softmax_function(np.dot(x, self.W) + self.b)

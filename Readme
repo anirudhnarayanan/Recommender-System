@@ -7,3 +7,9 @@ MUSIC RECOMMENDATION WITH GRADIENT DESCENT AND LINEAR REGRESSION
 5) The files included are the code necessary for the task. 
 
 
+
+Do 
+1) pip install requirements.txt
+2) python recommend_engine.py (Least squares and SGD)
+3) python recommend_genres.py (Genre Recommendation using Logistic Regression)
+
