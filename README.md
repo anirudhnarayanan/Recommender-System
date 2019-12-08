@@ -1,1 +1,17 @@
 # Recommender-System
+
+## MUSIC RECOMMENDATION WITH GRADIENT DESCENT AND LINEAR REGRESSION
+
+1) The goal of this project was to provide recommendation with collaborative filtering, but implementing our own Linear regression, gradient descent.
+2) What makes our project Unique is that we have used Pyspark to parallelize the linear regression we have implemented on our own by using dataframes. 
+3) There is a runnable Ipython Notebook currently, which can be run for the initial Proof of Concept.
+4) For the demonstration we will have a webpage with recommendations for rated music. 
+5) The files included are the code necessary for the task. 
+
+
+
+## Running the Experiments 
+1) pip install requirements.txt
+2) python recommend_engine.py (Least squares and SGD)
+3) python recommend_genres.py (Genre Recommendation using Logistic Regression)
+
